@@ -1,2 +1,2 @@
-# Aurora-Connector
-A Python AWS Aurora Serverless Connector
+#AWS Aurora Serverless Connector
+README TODO
