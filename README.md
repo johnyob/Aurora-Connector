@@ -1,2 +1,2 @@
-#AWS Aurora Serverless Connector
+# AWS Aurora Serverless Connector
 README TODO
