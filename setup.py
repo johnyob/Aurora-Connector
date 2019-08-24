@@ -4,8 +4,7 @@ with open("README.md", "r") as file:
     long_description = file.read()
 
 requires = [
-    "boto3 >= 1.9.71",
-    "botocore >= 1.12.71",
+    "boto3 >= 1.9.215",
     "python-dateutil"
 ]
 
