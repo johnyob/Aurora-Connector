@@ -15,7 +15,7 @@ packages = [
 ]
 
 setuptools.setup(
-    name="aqa-assembly-simulator",
+    name="aurora-connector",
     version="0.0.1",
     author="Alistair O'Brien",
     author_email="alistair@duneroot.co.uk",
