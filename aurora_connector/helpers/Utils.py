@@ -35,7 +35,7 @@ DATATYPE_MAPPING = {
 }
 
 
-def format_field(field: Dict[str, Any]) -> Any:
+def format_field(field: Dict[str, Any], column_type: Callable) -> Any:
     """
     Returns the value of a field in a record
 
@@ -43,8 +43,13 @@ def format_field(field: Dict[str, Any]) -> Any:
     :return: (Any)
     """
 
-    return list(field.values())[0]
 
+    value =  list(field.values())[0]
+
+    if not value:
+        return None
+
+    return column_type(value)
 
 def format_record(record: List[Dict[str, Any]], column_types: List[Callable]) -> List[Any]:
     """
@@ -66,7 +71,7 @@ def format_record(record: List[Dict[str, Any]], column_types: List[Callable]) ->
     :return: (list)
     """
 
-    return [column_type(format_field(field)) for field, column_type in zip(record, column_types)]
+    return [format_field(field, column_type) for field, column_type in zip(record, column_types)]
 
 
 def get_column_type(column_type: str) -> Callable:
