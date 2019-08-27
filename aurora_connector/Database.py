@@ -158,7 +158,6 @@ class AuroraDatabase:
                 transactionId=self.transaction_id
             )
 
-
             # Reset transaction_id
             self._transaction_id = None
         except Exception as error:
@@ -268,4 +267,3 @@ class AuroraDatabase:
             self._execute_statement(sql, sql_parameters)
         except Exception as error:
             raise AuroraDatabaseException(error) from error
-
