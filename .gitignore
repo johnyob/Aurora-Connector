@@ -2,3 +2,4 @@
 /dist
 /aurora_connector.egg-info
 *__pycache__
+.idea/
