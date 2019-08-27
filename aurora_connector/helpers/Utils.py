@@ -35,21 +35,61 @@ DATATYPE_MAPPING = {
 }
 
 
-def format_field(field: Dict[str, Any], column_type: Callable) -> Any:
+def format_field(field: Dict[str, Any]) -> Any:
     """
-    Returns the value of a field in a record
+    Returns the value of the field dictionary returned by the Data API.
+
+    The field dictionary has the following structure:
+        field = {
+            value_name: value
+        },
+        where value_name in {"stringValue", "blobValue", ...}
 
     :param field: (dict)
     :return: (Any)
     """
 
+    datatype_identifier, value = list(field.items())[0]
 
-    value =  list(field.values())[0]
+    if datatype_identifier == "blobValue":
+        return bytes(value)
 
-    if not value:
-        return None
+    if datatype_identifier == "booleanValue":
+        return bool(value)
 
-    return column_type(value)
+    if datatype_identifier == "isNull":
+        if value:
+            return None
+
+    if datatype_identifier == "longValue":
+        return int(value)
+
+    if datatype_identifier == "stringValue":
+        return str(value)
+
+    raise AuroraDatabaseException({
+        "message": "Unsupported query result field datatype.",
+        "field_value": value,
+        "supported_types": [
+            bytes, bool, float, int, str, None
+        ]
+    })
+
+
+def cast_field(field_value: Any, column_type: Callable) -> Any:
+    """
+    Returns the casted field value according to the DATATYPE_MAPPING above
+
+    :param field_value: value of the field (Any)
+    :param column_type: class constructor / function that casts the datatype to the correct type (Callable)
+    :return: (Any)
+    """
+
+    if field_value is None:
+        return field_value
+
+    return column_type(field_value)
+
 
 def format_record(record: List[Dict[str, Any]], column_types: List[Callable]) -> List[Any]:
     """
@@ -71,7 +111,7 @@ def format_record(record: List[Dict[str, Any]], column_types: List[Callable]) ->
     :return: (list)
     """
 
-    return [format_field(field, column_type) for field, column_type in zip(record, column_types)]
+    return [cast_field(format_field(field), column_type) for field, column_type in zip(record, column_types)]
 
 
 def get_column_type(column_type: str) -> Callable:
@@ -149,7 +189,7 @@ def format_value(value: Any) -> Dict[str, Any]:
         "message": "Unsupported parameter datatype.",
         "parameter_value": value,
         "supported_types": [
-            bytes, bool, float, int, str
+            bytes, bool, float, int, str, None
         ]
     })
 
