@@ -113,10 +113,11 @@ class AuroraDatabase:
         """
 
         if not self._in_transaction():
-            raise AuroraDatabaseException({
-                "message": "Cannot commit a transaction if a transaction hasn't been initiated.",
-                "transaction_id": self.transaction_id
-            })
+            return
+            # raise AuroraDatabaseException({
+            #     "message": "Cannot commit a transaction if a transaction hasn't been initiated.",
+            #     "transaction_id": self.transaction_id
+            # })
 
         try:
             RDS_CLIENT.commit_transaction(
