@@ -15,7 +15,7 @@ packages = [
 
 setuptools.setup(
     name="aurora-connector",
-    version="0.0.2",
+    version="0.0.3",
     author="Alistair O'Brien",
     author_email="alistair@duneroot.co.uk",
     description="A Python AWS Aurora Serverless Connector.",
