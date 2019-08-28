@@ -1,4 +1,5 @@
 from typing import List, Optional, Dict, Any, Union, Callable
+import re
 
 from dateutil.parser import parse as from_iso
 
@@ -211,6 +212,25 @@ def format_sql_parameters(sql_parameters: Dict[str, Any]) -> List[Dict[str, Unio
     return [
         {"name": name, "value": format_value(value)} for name, value in sql_parameters.items()
     ]
+
+
+def format_sql_query(sql: str, page: int, per_page: int) -> str:
+    """
+    Formats an sql query with the required limit and offset.
+
+    :param sql: original sql query (string)
+    :param page: number of the current page (int)
+    :param per_page: number of records per page (int)
+    :return: (str)
+    """
+
+    terminator_regex = r";"
+    limit_string = " LIMIT {} OFFSET {};".format(per_page, per_page * (page-1))
+
+    if not re.search(terminator_regex, sql):
+        return sql + limit_string
+
+    return re.sub(terminator_regex, limit_string, sql)
 
 
 def fetch_one(result_set: List[List]) -> Optional[List]:
