@@ -1,6 +1,7 @@
 from typing import Optional, Any, Dict, List
 
-from aurora_connector.helpers.Utils import format_response, format_sql_parameters
+from aurora_connector.helpers.Utils import format_response, format_sql_parameters, format_sql_query
+from aurora_connector.helpers.Constants import DATA_API_QUERY_MAX_ROW_LIMIT
 from aurora_connector.helpers.Exceptions import AuroraDatabaseException
 
 import boto3
@@ -193,7 +194,7 @@ class AuroraDatabase:
         except Exception as error:
             raise AuroraDatabaseException(error) from error
 
-    def query(self, sql: str, sql_parameters: Dict[str, Any] = {}) -> List[List]:
+    def query_fetch_all(self, sql: str, sql_parameters: Dict[str, Any] = {}) -> List[List]:
         """
         Queries the AWS Aurora Serverless cluster and returns the result set with the following format:
             result_set = [
@@ -208,13 +209,97 @@ class AuroraDatabase:
         :return: (list)
         """
 
+        return self._query_fetch_all(
+            sql=sql,
+            sql_parameters=sql_parameters,
+            page=1,
+            result_set=[]
+        )
+
+    def _query_fetch_all(
+        self, sql: str, sql_parameters: Dict[str, Any],
+        page: int, result_set: List
+    ) -> List[List]:
+        """
+        This queries the AWS Aurora Serverless cluster and returns the result set with the following format:
+            result_set = [
+                [column_1, column_2, ..., column_n],
+                .
+                .
+                .
+            ]
+
+        The function returns all records returned by sql (as opposed to the limits imposed by the Data API).
+        We use recursion in order to get all records, with a base of num_records < DATA_API_QUERY_MAX_ROW_LIMIT
+
+        :param sql: the SQL statement to run (string)
+        :param sql_parameters: A dictionary of parameters in the format: {parameter_name, parameter_value, } (dict)
+        :param page: number of current page (int)
+        :return: (list)
+        """
+
+        print(format_sql_query(sql, page, DATA_API_QUERY_MAX_ROW_LIMIT))
+
         try:
             response = RDS_CLIENT.execute_statement(
                 includeResultMetadata=True,
                 database=self._database_name,
                 resourceArn=self._db_cluster_arn,
                 secretArn=self._db_credentials_secrets_store_arn,
-                sql=sql,
+                sql=format_sql_query(sql, page, DATA_API_QUERY_MAX_ROW_LIMIT),
+                parameters=format_sql_parameters(sql_parameters)
+            )
+
+            num_records = len(response.get("records", []))
+            result_set.extend(format_response(response))
+        except Exception as error:
+            raise AuroraDatabaseException(error) from error
+
+        if num_records < DATA_API_QUERY_MAX_ROW_LIMIT:
+            return result_set
+
+        return self._query_fetch_all(sql, sql_parameters, page + 1, result_set)
+
+    def query(
+        self, sql: str, sql_parameters: Dict[str, Any] = {}, page: int = 1,
+        per_page: int = DATA_API_QUERY_MAX_ROW_LIMIT
+    ) -> List[List]:
+        """
+        Queries the AWS Aurora Serverless cluster and returns the result set with the following format:
+            result_set = [
+                [column_1, column_2, ..., column_n],
+                .
+                .
+                .
+            ]
+
+        :param sql: the SQL statement to run (string)
+        :param sql_parameters: A dictionary of parameters in the format: {parameter_name, parameter_value, } (dict)
+        :param page: number of current page (int)
+        :param per_page: number of records per page (int)
+        :return: (list)
+        """
+
+        if per_page > DATA_API_QUERY_MAX_ROW_LIMIT:
+            raise AuroraDatabaseException({
+                "message": "The argument for per_page is greater than the maximum query row limit imposed by the data api.",
+                "per_page": per_page,
+                "DATA_API_QUERY_MAX_ROW_LIMIT": DATA_API_QUERY_MAX_ROW_LIMIT
+            })
+
+        if page <= 0:
+            raise AuroraDatabaseException({
+                "message": "The argument for page is less than zero. However, page >= 1.",
+                "page": page
+            })
+
+        try:
+            response = RDS_CLIENT.execute_statement(
+                includeResultMetadata=True,
+                database=self._database_name,
+                resourceArn=self._db_cluster_arn,
+                secretArn=self._db_credentials_secrets_store_arn,
+                sql=format_sql_query(sql, page, per_page),
                 parameters=format_sql_parameters(sql_parameters)
             )
 
