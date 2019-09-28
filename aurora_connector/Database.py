@@ -238,8 +238,6 @@ class AuroraDatabase:
         :return: (list)
         """
 
-        print(format_sql_query(sql, page, DATA_API_QUERY_MAX_ROW_LIMIT))
-
         try:
             response = RDS_CLIENT.execute_statement(
                 includeResultMetadata=True,
